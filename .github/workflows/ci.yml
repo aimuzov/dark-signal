@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: swift on macOS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Report the toolchain under test
+        run: swift --version
+
+      - name: Build
+        run: swift build -c release
+
+      # A plain executable, so this needs no XCTest and no Xcode-only setup
+      - name: Run the checks
+        run: swift run dark-signal-tests
+
+      - name: Check the binary answers
+        run: |
+          ./.build/release/dark-signal status
+          ./.build/release/dark-signal help > /dev/null
