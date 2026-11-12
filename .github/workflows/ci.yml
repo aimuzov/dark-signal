@@ -12,19 +12,40 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      - name: Reuse verified CI
+        id: verified
+        uses: aimuzov/infra-ci/reuse-check@v1
+        continue-on-error: true
+        with:
+          workflow: .github/workflows/ci.yml
       - uses: actions/checkout@v5
+        if: steps.verified.outputs.reused != 'true'
 
       - name: Report the toolchain under test
         run: swift --version
+        if: steps.verified.outputs.reused != 'true'
 
       - name: Build
         run: swift build -c release
+        if: steps.verified.outputs.reused != 'true'
 
       # A plain executable, so this needs no XCTest and no Xcode-only setup
       - name: Run the checks
         run: swift run dark-signal-tests
+        if: steps.verified.outputs.reused != 'true'
 
       - name: Check the binary answers
         run: |
           ./.build/release/dark-signal status
           ./.build/release/dark-signal help > /dev/null
+        if: steps.verified.outputs.reused != 'true'
+      - name: Record verified CI
+        if: github.event_name == 'pull_request' && steps.verified.outputs.reused != 'true'
+        uses: aimuzov/infra-ci/record-check@v1
+        continue-on-error: true
+        with:
+          workflow: .github/workflows/ci.yml
+permissions:
+  contents: read
+  actions: read
+  id-token: write
